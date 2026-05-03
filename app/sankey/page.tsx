@@ -19,43 +19,43 @@ const C = {
 // ── Nodes with depth (0 = left 1985, 1 = right 2022) ──────────
 const NODES = [
   // ── LEFT (1985) ───────────────────────────────────────────
-  { name: '農地(24,190公頃)',  depth: 0, color: C.農地,    lbl: 'left'  as const },
-  { name: '森林(497公頃)',     depth: 0, color: C.森林,    lbl: 'left'  as const },
-  { name: '草地(50公頃)',      depth: 0, color: C.草地,    lbl: 'left'  as const },
-  { name: '感潮灘地(418公頃)', depth: 0, color: C.感潮灘地, lbl: 'left'  as const },
-  { name: '紅樹林(50公頃)',    depth: 0, color: C.紅樹林,  lbl: 'left'  as const },
-  { name: '建地(3,018公頃)',   depth: 0, color: C.建地,    lbl: 'left'  as const },
-  { name: '水體(19,196公頃)',  depth: 0, color: C.水體,    lbl: 'left'  as const },
+  { name: '農地 (24,190公頃)',  depth: 0, color: C.農地,    lbl: 'left'  as const },
+  { name: '森林 (497公頃)',     depth: 0, color: C.森林,    lbl: 'left'  as const },
+  { name: '草地 (50公頃)',      depth: 0, color: C.草地,    lbl: 'left'  as const },
+  { name: '感潮灘地 (418公頃)', depth: 0, color: C.感潮灘地, lbl: 'left'  as const },
+  { name: '紅樹林 (50公頃)',    depth: 0, color: C.紅樹林,  lbl: 'left'  as const },
+  { name: '建地 (3,018公頃)',   depth: 0, color: C.建地,    lbl: 'left'  as const },
+  { name: '水體 (19,196公頃)',  depth: 0, color: C.水體,    lbl: 'left'  as const },
   // ── RIGHT (2022) ──────────────────────────────────────────
-  { name: '農地(17,888公頃)',     depth: 1, color: C.農地,    lbl: 'right' as const },
-  { name: '森林(850公頃)',        depth: 1, color: C.森林,    lbl: 'right' as const },
-  { name: '草地(11公頃)',         depth: 1, color: C.草地,    lbl: 'right' as const },
-  { name: '感潮灘地(10,419公頃)', depth: 1, color: C.感潮灘地, lbl: 'right' as const },
-  { name: '紅樹林(36公頃)',       depth: 1, color: C.紅樹林,  lbl: 'right' as const },
-  { name: '建地(9,222公頃)',      depth: 1, color: C.建地,    lbl: 'right' as const },
-  { name: '裸地(890公頃)',        depth: 1, color: C.裸地,    lbl: 'right' as const },
-  { name: '水體(8,103公頃)',      depth: 1, color: C.水體,    lbl: 'right' as const },
+  { name: '農地 (17,888公頃)',     depth: 1, color: C.農地,    lbl: 'right' as const },
+  { name: '森林 (850公頃)',        depth: 1, color: C.森林,    lbl: 'right' as const },
+  { name: '草地 (11公頃)',         depth: 1, color: C.草地,    lbl: 'right' as const },
+  { name: '感潮灘地 (10,419公頃)', depth: 1, color: C.感潮灘地, lbl: 'right' as const },
+  { name: '紅樹林 (36公頃)',       depth: 1, color: C.紅樹林,  lbl: 'right' as const },
+  { name: '建地 (9,222公頃)',      depth: 1, color: C.建地,    lbl: 'right' as const },
+  { name: '裸地 (890公頃)',        depth: 1, color: C.裸地,    lbl: 'right' as const },
+  { name: '水體 (8,103公頃)',      depth: 1, color: C.水體,    lbl: 'right' as const },
 ];
 
 // ── Balanced values ──────────────────────────────────────────
 const RAW_LINKS = [
-  { source: '農地(24,190公頃)',  target: '農地(17,888公頃)',     value: 17000, isSame: true,  color: C.農地    },
-  { source: '農地(24,190公頃)',  target: '森林(850公頃)',         value: 353,   isSame: false, color: C.農地    },
-  { source: '農地(24,190公頃)',  target: '草地(11公頃)',          value: 11,    isSame: false, color: C.農地    },
-  { source: '農地(24,190公頃)',  target: '建地(9,222公頃)',       value: 5000,  isSame: false, color: C.農地    },
-  { source: '農地(24,190公頃)',  target: '裸地(890公頃)',         value: 490,   isSame: false, color: C.農地    },
-  { source: '農地(24,190公頃)',  target: '水體(8,103公頃)',       value: 1336,  isSame: false, color: C.農地    },
-  { source: '森林(497公頃)',     target: '森林(850公頃)',         value: 497,   isSame: true,  color: C.森林    },
-  { source: '草地(50公頃)',      target: '草地(11公頃)',          value: 50,    isSame: true,  color: C.草地    },
-  { source: '感潮灘地(418公頃)', target: '感潮灘地(10,419公頃)', value: 418,   isSame: true,  color: C.感潮灘地 },
-  { source: '紅樹林(50公頃)',    target: '紅樹林(36公頃)',        value: 50,    isSame: true,  color: C.紅樹林  },
-  { source: '建地(3,018公頃)',   target: '建地(9,222公頃)',       value: 3018,  isSame: true,  color: C.建地    },
-  { source: '水體(19,196公頃)',  target: '農地(17,888公頃)',      value: 888,   isSame: false, color: C.水體    },
-  { source: '水體(19,196公頃)',  target: '感潮灘地(10,419公頃)', value: 10001, isSame: false, color: C.水體    },
-  { source: '水體(19,196公頃)',  target: '紅樹林(36公頃)',        value: 36,    isSame: false, color: C.水體    },
-  { source: '水體(19,196公頃)',  target: '建地(9,222公頃)',       value: 1204,  isSame: false, color: C.水體    },
-  { source: '水體(19,196公頃)',  target: '裸地(890公頃)',         value: 400,   isSame: false, color: C.水體    },
-  { source: '水體(19,196公頃)',  target: '水體(8,103公頃)',       value: 6667,  isSame: true,  color: C.水體    },
+  { source: '農地 (24,190公頃)',  target: '農地 (17,888公頃)',     value: 17000, isSame: true,  color: C.農地    },
+  { source: '農地 (24,190公頃)',  target: '森林 (850公頃)',         value: 353,   isSame: false, color: C.農地    },
+  { source: '農地 (24,190公頃)',  target: '草地 (11公頃)',          value: 11,    isSame: false, color: C.農地    },
+  { source: '農地 (24,190公頃)',  target: '建地 (9,222公頃)',       value: 5000,  isSame: false, color: C.農地    },
+  { source: '農地 (24,190公頃)',  target: '裸地 (890公頃)',         value: 490,   isSame: false, color: C.農地    },
+  { source: '農地 (24,190公頃)',  target: '水體 (8,103公頃)',       value: 1336,  isSame: false, color: C.農地    },
+  { source: '森林 (497公頃)',     target: '森林 (850公頃)',         value: 497,   isSame: true,  color: C.森林    },
+  { source: '草地 (50公頃)',      target: '草地 (11公頃)',          value: 50,    isSame: true,  color: C.草地    },
+  { source: '感潮灘地 (418公頃)', target: '感潮灘地 (10,419公頃)', value: 418,   isSame: true,  color: C.感潮灘地 },
+  { source: '紅樹林 (50公頃)',    target: '紅樹林 (36公頃)',        value: 50,    isSame: true,  color: C.紅樹林  },
+  { source: '建地 (3,018公頃)',   target: '建地 (9,222公頃)',       value: 3018,  isSame: true,  color: C.建地    },
+  { source: '水體 (19,196公頃)',  target: '農地 (17,888公頃)',      value: 888,   isSame: false, color: C.水體    },
+  { source: '水體 (19,196公頃)',  target: '感潮灘地 (10,419公頃)', value: 10001, isSame: false, color: C.水體    },
+  { source: '水體 (19,196公頃)',  target: '紅樹林 (36公頃)',        value: 36,    isSame: false, color: C.水體    },
+  { source: '水體 (19,196公頃)',  target: '建地 (9,222公頃)',       value: 1204,  isSame: false, color: C.水體    },
+  { source: '水體 (19,196公頃)',  target: '裸地 (890公頃)',         value: 400,   isSame: false, color: C.水體    },
+  { source: '水體 (19,196公頃)',  target: '水體 (8,103公頃)',       value: 6667,  isSame: true,  color: C.水體    },
 ];
 
 export default function SankeyPage() {
@@ -93,17 +93,19 @@ export default function SankeyPage() {
       nodeAlign: 'justify' as const,
     };
 
+    const fontStr = '"Times New Roman", "DFKai-SB", "標楷體", "BiauKai", "Noto Sans TC", serif';
+
     return {
-      backgroundColor: '#ffffff',
+      backgroundColor: '#F9F7F0',
       title: {
         text: '1985–2022 彰化沿海六鄉鎮地覆類別變遷圖',
         left: 'center',
         top: 18,
         textStyle: {
-          fontSize: 24,
-          fontWeight: '400',
+          fontSize: 26,
+          fontWeight: 'bold',
           color: '#2c2c2c',
-          fontFamily: '"Noto Sans TC", "Microsoft JhengHei", sans-serif',
+          fontFamily: fontStr,
         },
       },
       tooltip: {
@@ -113,7 +115,7 @@ export default function SankeyPage() {
         borderColor: '#e0e0e0',
         borderWidth: 1,
         textStyle: {
-          fontFamily: '"Noto Sans TC", "Microsoft JhengHei", sans-serif',
+          fontFamily: fontStr,
           fontSize: 13,
           color: '#333',
         },
@@ -138,9 +140,10 @@ export default function SankeyPage() {
           links: links.map(l => ({ ...l, lineStyle: { opacity: 0 } })),
           label: {
             show: true,
-            fontSize: 13,
+            fontSize: 14,
+            fontWeight: 'bold',
             color: '#333',
-            fontFamily: '"Noto Sans TC", "Microsoft JhengHei", sans-serif',
+            fontFamily: fontStr,
           },
           itemStyle: { opacity: 1 },
           emphasis: { focus: 'adjacency' as const },
@@ -187,10 +190,10 @@ export default function SankeyPage() {
           padding: '0 6px',
           zIndex: 10,
           pointerEvents: 'none',
-          fontFamily: '"Noto Sans TC", "Microsoft JhengHei", sans-serif',
-          fontSize: 15,
-          fontWeight: 500,
-          color: '#666',
+          fontFamily: '"Times New Roman", "DFKai-SB", "標楷體", "BiauKai", serif',
+          fontSize: 16,
+          fontWeight: 'bold',
+          color: '#555',
           letterSpacing: '0.05em',
         }}
       >
@@ -198,7 +201,7 @@ export default function SankeyPage() {
         <span>2022</span>
       </div>
 
-      <div style={{ width: '100%', height: '100vh', background: '#fff', position: 'relative' }}>
+      <div style={{ width: '100%', height: '100vh', background: '#F9F7F0', position: 'relative' }}>
         <ReactECharts
           option={option}
           style={{ height: '100%', width: '100%' }}
