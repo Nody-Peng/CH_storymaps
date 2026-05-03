@@ -201,11 +201,20 @@ export default function SankeyPage() {
         <span>2022</span>
       </div>
 
-      <div style={{ width: '100%', height: '100vh', background: '#F9F7F0', position: 'relative' }}>
+      <div 
+        style={{ 
+          width: '100%', 
+          height: '100vh', 
+          background: '#F9F7F0', 
+          position: 'relative',
+          WebkitFontSmoothing: 'antialiased',
+          MozOsxFontSmoothing: 'grayscale'
+        }}
+      >
         <ReactECharts
           option={option}
           style={{ height: '100%', width: '100%' }}
-          opts={{ renderer: 'canvas' }}
+          opts={{ renderer: 'svg' }}
           notMerge={true}
         />
       </div>
