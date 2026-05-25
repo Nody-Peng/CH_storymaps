@@ -122,7 +122,7 @@ export default function LandUsePage() {
     <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center py-8 px-4">
       <div className="w-full max-w-4xl mb-4">
         <h1 className="text-2xl font-bold text-white">彰化縣土地利用排名變遷</h1>
-        <p className="text-gray-400 text-sm mt-1">各土地類型面積排名 · 1985 – 2021</p>
+        <p className="text-gray-400 text-sm mt-1">各土地類型面積排名 · 1985 – 2022</p>
       </div>
 
       <div className="w-full max-w-4xl bg-gray-900 rounded-2xl shadow-xl overflow-hidden">
