@@ -64,7 +64,6 @@ function MediaPlaceholder({
 
   /* 影片（YouTube embed） */
   if (node.mediaType === "video" && node.mediaSrc) {
-    // 自動把 youtube.com/watch?v=XXX 轉成 embed 格式
     const embedSrc = node.mediaSrc.includes("youtube.com/watch")
       ? node.mediaSrc.replace("watch?v=", "embed/").split("&")[0]
       : node.mediaSrc.includes("youtu.be/")
@@ -138,7 +137,6 @@ function MediaPlaceholder({
           if (active) e.currentTarget.style.background = "#fff";
         }}
       >
-        {/* 上方：媒體說明文字 */}
         <p
           style={{
             fontSize: 13,
@@ -152,7 +150,6 @@ function MediaPlaceholder({
           {node.mediaCaption}
         </p>
 
-        {/* 下方：按鈕列 */}
         <div
           style={{
             display: "flex",
@@ -163,7 +160,6 @@ function MediaPlaceholder({
             borderTop: `1px solid ${active ? "#ede9e3" : "#f0ece6"}`,
           }}
         >
-          {/* 來源 domain */}
           <span
             style={{
               fontSize: 10,
@@ -184,7 +180,6 @@ function MediaPlaceholder({
             })()}
           </span>
 
-          {/* 閱讀原文按鈕 */}
           <span
             style={{
               display: "inline-flex",
@@ -397,17 +392,7 @@ export default function TimelineCarousel({ nodes }: TimelineCarouselProps) {
         ::-webkit-scrollbar { display: none; }
       `}</style>
 
-      {/* 頂部進度條 */}
-      <div style={{ height: 2, background: "#e7e0d8", flexShrink: 0 }}>
-        <div
-          style={{
-            height: "100%",
-            background: "#292524",
-            width: `${progress}%`,
-            transition: "width 0.4s ease",
-          }}
-        />
-      </div>
+      {/* ── 頂部進度條已移除 ── */}
 
       {/* Header */}
       <header
