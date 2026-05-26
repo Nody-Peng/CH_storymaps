@@ -1,55 +1,101 @@
 "use client";
 
-import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
-import ReactECharts from "echarts-for-react";
+import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
 
 const C: Record<string, string> = {
-  建地:     "#C83535",
-  感潮灘地: "#9B7B55",
-  水體:     "#3A7DBF",
-  紅樹林:   "#6DA896",
-  草生地:   "#7DAF5E",
-  裸地:     "#999999",
-  農地:     "#C8A83A",
-  陸域森林: "#3E8040",
+  農地:     "#8aab5a",
+  陸域森林: "#3A6B35",
+  草生地:   "#c8b84a",
+  感潮灘地: "#b8864e",
+  紅樹林:   "#5B9E8A",
+  建地:     "#c8604a",
+  裸地:     "#A0A0A0",
+  水體:     "#4A7AB8",
 };
+const CLASS_ORDER = ["農地","陸域森林","草生地","感潮灘地","紅樹林","建地","裸地","水體"];
+const getColor = (cls: string) => C[cls] ?? "#888";
 
-const getColor = (cls: string) => C[cls] ?? "#888888";
+const FONT = '"Noto Serif TC", "Noto Serif", serif';
+const BG   = "#F9F7F0";
 
-interface RawLink {
-  source:     number;
-  target:     number;
-  value:      number;
-  from_class: string;
-  to_class:   string;
-  is_change:  boolean;
-}
-interface RawNode { name: string; }
-interface Period {
-  nodes:     RawNode[];
-  links:     RawLink[];
-  year_from: number;
-  year_to:   number;
-}
-type SankeyData = Record<string, Record<string, Period>>;
-
-const REGIONS = ["全部", "鹿港鎮", "線西鄉", "伸港鄉", "福興鄉", "芳苑鄉", "大城鄉"];
 const PERIOD_KEYS = [
   "1985→1990","1990→1995","1995→2000","2000→2005",
   "2005→2010","2010→2015","2015→2018","2018→2019",
   "2019→2020","2020→2021","2021→2022",
 ];
+const ALL_YEARS = ["1985","1990","1995","2000","2005","2010","2015","2018","2019","2020","2021","2022"];
+const REGIONS   = ["全部","鹿港鎮","線西鄉","伸港鄉","福興鄉","芳苑鄉","大城鄉"];
 
-const FONT          = '"Times New Roman","DFKai-SB","標楷體","BiauKai","Noto Sans TC",serif';
-const AUTO_INTERVAL = 3200;
+const COL_W      = 480;
+const PAD_LEFT   = 130;
+const PAD_RIGHT  = 130;
+const PAD_TOP    = 72;
+const PAD_BOTTOM = 40;
+const NODE_W     = 20;
+const NODE_GAP   = 14;
+const CHART_H    = 860;
+
+interface RawLink {
+  source: number; target: number; value: number;
+  from_class: string; to_class: string; is_change: boolean;
+}
+interface RawNode { name: string; }
+interface Period {
+  nodes: RawNode[]; links: RawLink[];
+  year_from: number; year_to: number;
+}
+type SankeyData = Record<string, Record<string, Period>>;
+
+function scaleArea(area: number, total: number, usableH: number, allAreas: number[]): number {
+  if (area <= 0) return 0;
+  const linearPct = area / total;
+  const logVal    = Math.log1p(area);
+  const logTotal  = allAreas.reduce((s, a) => s + Math.log1p(a), 0);
+  const logPct    = logVal / logTotal;
+  return (0.65 * linearPct + 0.35 * logPct) * usableH;
+}
+
+function linkPath(x0: number, y0: number, h0: number, x1: number, y1: number, h1: number) {
+  const mx = (x0 + x1) / 2;
+  return [
+    `M ${x0} ${y0}`,
+    `C ${mx} ${y0}, ${mx} ${y1}, ${x1} ${y1}`,
+    `L ${x1} ${y1 + h1}`,
+    `C ${mx} ${y1 + h1}, ${mx} ${y0 + h0}, ${x0} ${y0 + h0}`,
+    "Z",
+  ].join(" ");
+}
 
 export default function SankeyPage() {
-  const [data, setData]           = useState<SankeyData | null>(null);
-  const [region, setRegion]       = useState("全部");
-  const [periodIdx, setPeriodIdx] = useState(0);
-  const [paused, setPaused]       = useState(false);
-  // 只用來顯示年份標題的淡入，不控制圖表
-  const [titleKey, setTitleKey]   = useState(0);
+  const [data, setData]       = useState<SankeyData | null>(null);
+  const [region, setRegion]   = useState("全部");
+  const [hovered, setHovered] = useState<string | null>(null);
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; html: string } | null>(null);
+  const svgRef    = useRef<SVGSVGElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // ── 載入 Google Font ──────────────────────────────
+  useEffect(() => {
+    if (document.getElementById("noto-serif-tc-link")) return;
+    const link = document.createElement("link");
+    link.id   = "noto-serif-tc-link";
+    link.rel  = "stylesheet";
+    link.href = "https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&display=swap";
+    document.head.appendChild(link);
+  }, []);
+
+  // ── 滾輪橫向捲動 ──────────────────────────────────
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY * 1.2;
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
 
   useEffect(() => {
     fetch("/lulcc_data.json")
@@ -57,293 +103,317 @@ export default function SankeyPage() {
       .then(d => setData(d.sankey ?? d));
   }, []);
 
-  const availableKeys = useMemo(() => {
-    if (!data?.[region]) return [];
-    return PERIOD_KEYS.filter(k => data[region][k]);
+  const { nodes, bands, totalW } = useMemo(() => {
+    if (!data?.[region]) return { nodes: [], bands: [], totalW: 0 };
+
+    const totalW = PAD_LEFT + ALL_YEARS.length * COL_W + PAD_RIGHT;
+    const innerH = CHART_H - PAD_TOP - PAD_BOTTOM;
+
+    const nodeArea: Record<string, number> = {};
+    PERIOD_KEYS.forEach(key => {
+      const p = data[region][key];
+      if (!p) return;
+      const srcT: Record<number, number> = {};
+      const tgtT: Record<number, number> = {};
+      p.links.forEach(l => {
+        srcT[l.source] = (srcT[l.source] ?? 0) + l.value;
+        tgtT[l.target] = (tgtT[l.target] ?? 0) + l.value;
+      });
+      p.nodes.forEach((n, i) => {
+        const a = Math.max(srcT[i] ?? 0, tgtT[i] ?? 0);
+        if (a > 0) nodeArea[n.name] = Math.max(nodeArea[n.name] ?? 0, a);
+      });
+    });
+
+    type NodeGeo = { name: string; cls: string; year: string; x: number; y: number; h: number; area: number; };
+    const nodeGeos: NodeGeo[] = [];
+
+    ALL_YEARS.forEach((year, yi) => {
+      const x = PAD_LEFT + yi * COL_W;
+      const clsWithArea = CLASS_ORDER
+        .map(cls => ({ cls, area: nodeArea[`${cls}（${year}）`] ?? 0 }))
+        .filter(d => d.area > 0);
+      if (!clsWithArea.length) return;
+
+      const totalArea = clsWithArea.reduce((s, d) => s + d.area, 0);
+      const allAreas  = clsWithArea.map(d => d.area);
+      const usableH   = innerH - NODE_GAP * (clsWithArea.length - 1);
+      let curY = PAD_TOP;
+
+      clsWithArea.forEach(({ cls, area }) => {
+        const h = Math.max(5, scaleArea(area, totalArea, usableH, allAreas));
+        nodeGeos.push({ name: `${cls}（${year}）`, cls, year, x, y: curY, h, area });
+        curY += h + NODE_GAP;
+      });
+    });
+
+    const nodeMap = new Map(nodeGeos.map(n => [n.name, n]));
+
+    type Band = {
+      path: string; color: string; isChange: boolean;
+      srcName: string; tgtName: string;
+      fromCls: string; toCls: string;
+      value: number; pct: string;
+    };
+    const bands: Band[] = [];
+    const srcOffset = new Map<string, number>();
+    const tgtOffset = new Map<string, number>();
+
+    PERIOD_KEYS.forEach(key => {
+      const p = data[region][key];
+      if (!p) return;
+      const srcTotals: Record<number, number> = {};
+      p.links.forEach(l => { srcTotals[l.source] = (srcTotals[l.source] ?? 0) + l.value; });
+
+      const sorted = [...p.links].sort((a, b) => {
+        if (a.is_change !== b.is_change) return a.is_change ? 1 : -1;
+        return CLASS_ORDER.indexOf(a.to_class) - CLASS_ORDER.indexOf(b.to_class);
+      });
+
+      sorted.forEach(l => {
+        const srcName = p.nodes[l.source].name;
+        const tgtName = p.nodes[l.target].name;
+        const src = nodeMap.get(srcName);
+        const tgt = nodeMap.get(tgtName);
+        if (!src || !tgt) return;
+
+        const bh_src = (l.value / src.area) * src.h;
+        const bh_tgt = (l.value / tgt.area) * tgt.h;
+        const so = srcOffset.get(srcName) ?? 0;
+        const to = tgtOffset.get(tgtName) ?? 0;
+
+        bands.push({
+          path: linkPath(src.x + NODE_W, src.y + so, bh_src, tgt.x, tgt.y + to, bh_tgt),
+          color: getColor(l.from_class),
+          isChange: l.is_change,
+          srcName, tgtName,
+          fromCls: l.from_class, toCls: l.to_class,
+          value: l.value,
+          pct: ((l.value / (srcTotals[l.source] ?? 1)) * 100).toFixed(1),
+        });
+        srcOffset.set(srcName, so + bh_src);
+        tgtOffset.set(tgtName, to + bh_tgt);
+      });
+    });
+
+    return { nodes: nodeGeos, bands, totalW };
   }, [data, region]);
 
-  // 切換時段：只改 index，讓 ECharts 自己做平滑過渡
-  const goTo = useCallback((idx: number) => {
-    if (!availableKeys.length) return;
-    const next = ((idx % availableKeys.length) + availableKeys.length) % availableKeys.length;
-    setPeriodIdx(next);
-    setTitleKey(k => k + 1); // 觸發年份標題淡入
-  }, [availableKeys.length]);
-
-  // 自動輪播
-  useEffect(() => {
-    if (paused || !availableKeys.length) return;
-    const id = setInterval(() => {
-      setPeriodIdx(p => {
-        const next = (p + 1) % availableKeys.length;
-        setTitleKey(k => k + 1);
-        return next;
-      });
-    }, AUTO_INTERVAL);
-    return () => clearInterval(id);
-  }, [paused, availableKeys.length, region]);
-
-  useEffect(() => { setPeriodIdx(0); setTitleKey(0); }, [region]);
-
-  useEffect(() => {
-    const fn = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight") { setPaused(true); goTo(periodIdx + 1); }
-      if (e.key === "ArrowLeft")  { setPaused(true); goTo(periodIdx - 1); }
-      if (e.key === " ")          { e.preventDefault(); setPaused(p => !p); }
-    };
-    window.addEventListener("keydown", fn);
-    return () => window.removeEventListener("keydown", fn);
-  }, [periodIdx, goTo]);
-
-  const period = useMemo(() => {
-    if (!data?.[region]) return null;
-    const key = availableKeys[periodIdx];
-    return key ? data[region][key] : null;
-  }, [data, region, availableKeys, periodIdx]);
-
-  const option = useMemo(() => {
-    if (!period) return null;
-
-    const nodes = period.nodes.map(n => {
-      const cls = Object.keys(C).find(k => n.name.includes(k)) ?? "";
-      return {
-        name: n.name,
-        itemStyle: { color: getColor(cls) },
-        label: {
-          position:   n.name.includes(`（${period.year_from}）`) ? "left" : "right",
-          fontSize:   13,
-          fontWeight: "bold",
-          color:      "#333",
-          fontFamily: FONT,
-        },
-      };
+  const relatedNames = useMemo(() => {
+    if (!hovered) return new Set<string>();
+    const s = new Set<string>([hovered]);
+    CLASS_ORDER.forEach(cls => {
+      if (hovered.includes(cls)) ALL_YEARS.forEach(y => s.add(`${cls}（${y}）`));
     });
-
-    const sourceTotal: Record<string, number> = {};
-    period.links.forEach(l => {
-      const src = period.nodes[l.source].name;
-      sourceTotal[src] = (sourceTotal[src] ?? 0) + l.value;
+    bands.forEach(b => {
+      if (b.srcName === hovered || b.tgtName === hovered) {
+        s.add(b.srcName); s.add(b.tgtName);
+      }
     });
+    return s;
+  }, [hovered, bands]);
 
-    const links = period.links.map(l => {
-      const srcName = period.nodes[l.source].name;
-      const tgtName = period.nodes[l.target].name;
-      const pct     = sourceTotal[srcName] > 0
-        ? ((l.value / sourceTotal[srcName]) * 100).toFixed(1) : "0.0";
-      return {
-        source: srcName,
-        target: tgtName,
-        value:  l.value,
-        _isChange:  l.is_change,
-        _fromClass: l.from_class,
-        _pct:       pct,
-        lineStyle: {
-          color:     getColor(l.from_class),
-          opacity:   l.is_change ? 0.62 : 0.20,
-          curveness: 0.5,
-        },
-      };
+  const handleBandEnter = useCallback((e: React.MouseEvent, b: any) => {
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setTooltip({
+      x: e.clientX - rect.left + 16,
+      y: e.clientY - rect.top - 12,
+      html: [
+        b.isChange
+          ? `<span style="background:${getColor(b.fromCls)};color:#fff;padding:2px 9px;border-radius:4px;font-size:11px;font-family:${FONT}">類別轉換</span>`
+          : `<span style="background:#aaa;color:#fff;padding:2px 9px;border-radius:4px;font-size:11px;font-family:${FONT}">維持不變</span>`,
+        `<div style="margin-top:6px;font-size:14px;font-family:${FONT}"><b>${b.fromCls}</b> → <b>${b.toCls}</b></div>`,
+        `<div style="color:#666;font-size:12px;margin-top:2px;font-family:${FONT}">面積 <b style="color:#333">${Math.round(b.value).toLocaleString()}</b> 公頃</div>`,
+        `<div style="color:#666;font-size:12px;font-family:${FONT}">佔來源 ${b.fromCls} <b style="color:#333">${b.pct}%</b></div>`,
+      ].join(""),
     });
+  }, []);
 
-    return {
-      backgroundColor: "#F9F7F0",
-      tooltip: {
-        trigger: "item",
-        backgroundColor: "rgba(255,255,255,0.97)",
-        borderColor: "#e0e0e0",
-        borderWidth: 1,
-        textStyle: { fontFamily: FONT, fontSize: 13, color: "#333" },
-        formatter: (params: any) => {
-          if (params.dataType === "node") return `<b>${params.name}</b>`;
-          if (params.dataType === "edge") {
-            const d = params.data;
-            const badge = d._isChange
-              ? `<span style="background:#C83535;color:#fff;padding:1px 6px;border-radius:3px;font-size:11px">類別轉換</span>`
-              : `<span style="background:#aaa;color:#fff;padding:1px 6px;border-radius:3px;font-size:11px">維持不變</span>`;
-            return [
-              badge,
-              `<b>${d.source}</b> → <b>${d.target}</b>`,
-              `面積：<b>${Math.round(d.value).toLocaleString()}</b> 公頃`,
-              `佔來源 ${d._fromClass}：<b>${d._pct}%</b>`,
-            ].join("<br/>");
-          }
-          return "";
-        },
-      },
-      series: [{
-        type:             "sankey",
-        left:             "18%",
-        right:            "18%",
-        top:              60,
-        bottom:           28,
-        nodeWidth:        18,
-        nodeGap:          16,
-        layoutIterations: 0,
-        nodeAlign:        "justify",
-        // ✅ ECharts 內建平滑過渡，不閃
-        animation:              true,
-        animationDuration:      900,
-        animationEasing:        "cubicInOut",
-        animationDurationUpdate: 700,
-        animationEasingUpdate:  "cubicInOut",
-        data:  nodes,
-        links: links,
-        emphasis: {
-          focus: "adjacency",
-          lineStyle: { opacity: 0.9 },
-        },
-        label: {
-          show: true, fontSize: 13, fontWeight: "bold",
-          color: "#333", fontFamily: FONT,
-        },
-      }],
-    };
-  }, [period]);
-
-  if (!data) {
-    return (
-      <div style={{ background: "#F9F7F0", height: "100vh", display: "flex",
-        alignItems: "center", justifyContent: "center" }}>
-        <p style={{ color: "#a8a29e", fontFamily: FONT, fontSize: 16 }}>載入資料中…</p>
-      </div>
-    );
-  }
-
-  const currentKey = availableKeys[periodIdx] ?? "";
-  const [yearFrom, yearTo] = currentKey.split("→");
-  const progress = availableKeys.length > 1
-    ? (periodIdx / (availableKeys.length - 1)) * 100 : 0;
+  if (!data) return (
+    <div style={{ background: BG, height: "100vh", display: "flex",
+      alignItems: "center", justifyContent: "center", fontFamily: FONT }}>
+      <p style={{ color: "#a8a29e", fontSize: 16 }}>載入資料中…</p>
+    </div>
+  );
 
   return (
-    <div style={{ background: "#F9F7F0", height: "100vh", display: "flex",
-      flexDirection: "column", overflow: "hidden" }}>
+    <div style={{ background: BG, height: "100vh", display: "flex",
+      flexDirection: "column", overflow: "hidden", fontFamily: FONT }}>
 
-      {/* ══ 頂部導覽列 ══ */}
+      {/* ── Header ── */}
       <header style={{
-        position: "fixed", top: 0, left: 0, right: 0, zIndex: 199,
-        background: "rgba(249,247,240,0.95)", backdropFilter: "blur(12px)",
+        flexShrink: 0,
+        background: "rgba(249,247,240,0.97)", backdropFilter: "blur(12px)",
         borderBottom: "1px solid #e7e0d8",
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 32px", height: 50, gap: 12,
+        display: "flex", alignItems: "center", gap: 20,
+        padding: "0 32px", height: 54,
       }}>
-        <span style={{ fontFamily: FONT, fontSize: 15, fontWeight: 700,
-          color: "#2c2c2c", letterSpacing: "0.02em", whiteSpace: "nowrap" }}>
-          彰化沿海　地覆類別變遷
+        <span style={{ fontSize: 15, fontWeight: 700,
+          color: "#2c2c2c", whiteSpace: "nowrap", letterSpacing: ".04em" }}>
+          彰化沿海地覆類別變遷　1985–2022
         </span>
-        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+
+        <div style={{ display: "flex", gap: 2 }}>
           {REGIONS.map(r => (
             <button key={r} onClick={() => setRegion(r)} style={{
-              padding: "3px 11px", borderRadius: 20, border: "none",
+              padding: "4px 13px", borderRadius: 20, border: "none",
               fontSize: 12, fontFamily: FONT, cursor: "pointer",
               background: region === r ? "#292524" : "transparent",
               color:      region === r ? "#faf7f2" : "#78716c",
-              transition: "all 0.2s",
+              transition: "all 0.18s",
             }}>{r}</button>
           ))}
         </div>
-        <button onClick={() => setPaused(p => !p)} style={{
-          padding: "4px 14px", borderRadius: 20,
-          border: "1px solid #ccc", background: "none",
-          fontSize: 12, fontFamily: FONT, cursor: "pointer",
-          color: "#555", whiteSpace: "nowrap",
-        }}>
-          {paused ? "▶ 播放" : "⏸ 暫停"}
-        </button>
+
+        <div style={{ marginLeft: "auto", display: "flex", gap: 16, alignItems: "center" }}>
+          {CLASS_ORDER.map(cls => (
+            <button key={cls}
+              onMouseEnter={() => setHovered(`${cls}（1985）`)}
+              onMouseLeave={() => setHovered(null)}
+              style={{ display: "flex", alignItems: "center", gap: 6,
+                background: "none", border: "none", cursor: "pointer", padding: 0,
+                opacity: hovered && !hovered.includes(cls) ? 0.3 : 1,
+                transition: "opacity .2s", fontFamily: FONT,
+              }}>
+              <div style={{ width: 11, height: 11, borderRadius: 2,
+                background: getColor(cls), flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: "#555", whiteSpace: "nowrap" }}>{cls}</span>
+            </button>
+          ))}
+        </div>
       </header>
 
-      {/* ══ 年份浮動標題（只有這個淡入，圖表不閃）══ */}
+      {/* ── 主圖區 ── */}
       <div
-        key={titleKey}
+        ref={scrollRef}
         style={{
-          position: "fixed", top: 56, left: 0, right: 0, zIndex: 100,
-          display: "flex", justifyContent: "space-between", alignItems: "center",
-          padding: "0 19.5%", pointerEvents: "none",
-          animation: "fadeIn 0.5s ease forwards",
-        }}>
-        <span style={{ fontFamily: FONT, fontSize: 24, fontWeight: 700,
-          color: "#3a3a3a", letterSpacing: "0.06em" }}>{yearFrom}</span>
-        <span style={{ fontFamily: FONT, fontSize: 13, color: "#bbb" }}>→</span>
-        <span style={{ fontFamily: FONT, fontSize: 24, fontWeight: 700,
-          color: "#3a3a3a", letterSpacing: "0.06em" }}>{yearTo}</span>
-      </div>
+          flex: 1, overflowX: "auto", overflowY: "hidden",
+          scrollbarWidth: "thin", scrollbarColor: "#ccc #f5f3ee",
+          position: "relative", cursor: "grab",
+        }}
+      >
+        <svg
+          ref={svgRef}
+          width={totalW}
+          height={CHART_H}
+          style={{ display: "block", background: BG }}
+          onMouseLeave={() => { setHovered(null); setTooltip(null); }}
+        >
+          {/* 字型宣告（SVG 內部也套用）*/}
+          <defs>
+            <style>{`text { font-family: 'Noto Serif TC', 'Noto Serif', serif; }`}</style>
+          </defs>
 
-      {/* fadeIn keyframe */}
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(4px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
+          {/* 年份標籤 */}
+          {ALL_YEARS.map((y, i) => (
+            <text key={y}
+              x={PAD_LEFT + i * COL_W + NODE_W / 2}
+              y={PAD_TOP - 30}
+              textAnchor="middle"
+              fontFamily={FONT}
+              fontSize={14}
+              fontWeight={700}
+              fill="#aaa"
+              letterSpacing="0.08em"
+            >{y}</text>
+          ))}
 
-      {/* ══ 主圖表（不加 key，讓 ECharts 自己平滑過渡）══ */}
-      <div style={{ flex: 1, paddingTop: 50 }}>
-        {option && (
-          <ReactECharts
-            option={option}
-            style={{ height: "100%", width: "100%" }}
-            opts={{ renderer: "svg" }}
-            notMerge={false}
+          {/* 刻度線 */}
+          {ALL_YEARS.map((_, i) => (
+            <line key={i}
+              x1={PAD_LEFT + i * COL_W + NODE_W / 2} y1={PAD_TOP - 18}
+              x2={PAD_LEFT + i * COL_W + NODE_W / 2} y2={PAD_TOP - 6}
+              stroke="#ddd" strokeWidth={1.5}
+            />
+          ))}
+
+          {/* 流向帶 */}
+          {bands.map((b, i) => {
+            const lit = !hovered ||
+              relatedNames.has(b.srcName) || relatedNames.has(b.tgtName);
+            return (
+              <path key={i} d={b.path} fill={b.color}
+                opacity={lit ? (b.isChange ? 0.58 : 0.14) : 0.025}
+                style={{ transition: "opacity 0.2s", cursor: "crosshair" }}
+                onMouseEnter={e => handleBandEnter(e, b)}
+                onMouseLeave={() => setTooltip(null)}
+              />
+            );
+          })}
+
+          {/* 節點 */}
+          {nodes.map(n => {
+            const isActive = !hovered || relatedNames.has(n.name);
+            const isHov    = hovered === n.name;
+            const isFirst  = n.year === ALL_YEARS[0];
+
+            return (
+              <g key={n.name} style={{ cursor: "pointer" }}
+                onMouseEnter={() => setHovered(n.name)}
+                onMouseLeave={() => setHovered(null)}
+              >
+                <rect x={n.x} y={n.y} width={NODE_W} height={n.h}
+                  fill={getColor(n.cls)}
+                  opacity={isActive ? 1 : 0.12}
+                  rx={3}
+                  style={{ transition: "opacity 0.2s" }}
+                />
+                {isHov && (
+                  <rect x={n.x - 2} y={n.y - 2}
+                    width={NODE_W + 4} height={n.h + 4}
+                    fill="none" stroke={getColor(n.cls)}
+                    strokeWidth={2} rx={3} opacity={0.85}
+                  />
+                )}
+                {n.h >= 14 && (
+                  <text
+                    x={isFirst ? n.x - 9 : n.x + NODE_W + 9}
+                    y={n.y + n.h / 2}
+                    textAnchor={isFirst ? "end" : "start"}
+                    dominantBaseline="middle"
+                    fontFamily={FONT}
+                    fontSize={n.h >= 30 ? 13 : 10}
+                    fontWeight={600}
+                    fill={isActive ? getColor(n.cls) : "#ddd"}
+                    style={{ transition: "fill 0.2s", pointerEvents: "none" }}
+                  >{n.cls}</text>
+                )}
+              </g>
+            );
+          })}
+        </svg>
+
+        {/* Tooltip */}
+        {tooltip && (
+          <div style={{
+            position: "absolute", left: tooltip.x, top: tooltip.y,
+            background: "rgba(255,255,255,0.98)",
+            border: "1px solid #e4ddd6", borderRadius: 9,
+            padding: "10px 16px", fontFamily: FONT,
+            fontSize: 13, color: "#333",
+            pointerEvents: "none", zIndex: 999,
+            boxShadow: "0 8px 28px rgba(0,0,0,0.10)",
+            lineHeight: 1.85, minWidth: 175,
+          }}
+            dangerouslySetInnerHTML={{ __html: tooltip.html }}
           />
         )}
       </div>
 
-      {/* ══ 底部時間軸 ══ */}
+      {/* ── 底部說明 ── */}
       <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 199,
-        background: "rgba(249,247,240,0.96)", backdropFilter: "blur(8px)",
-        borderTop: "1px solid #e7e0d8", padding: "10px 0 14px",
+        flexShrink: 0, height: 30,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        gap: 36, borderTop: "1px solid #ece8e0",
       }}>
-        <div style={{ maxWidth: 860, margin: "0 auto", padding: "0 56px" }}>
-          <div style={{ position: "relative", height: 20 }}>
-            <div style={{ position: "absolute", left: 0, right: 0, top: "50%",
-              height: 1, background: "#ddd8d0", transform: "translateY(-50%)" }} />
-            <div style={{
-              position: "absolute", left: 0, top: "50%", height: 1,
-              background: "#292524", transform: "translateY(-50%)",
-              width: `${progress}%`, transition: "width 0.5s ease",
-            }} />
-            {availableKeys.map((k, i) => {
-              const pct      = availableKeys.length > 1 ? (i / (availableKeys.length - 1)) * 100 : 50;
-              const isActive = periodIdx === i;
-              return (
-                <button key={k} title={k}
-                  onClick={() => { setPaused(true); goTo(i); }}
-                  style={{
-                    position: "absolute", left: `${pct}%`, top: "50%",
-                    transform: "translate(-50%,-50%)",
-                    width: isActive ? 13 : 7, height: isActive ? 13 : 7,
-                    borderRadius: "50%",
-                    background: isActive ? "#292524" : i < periodIdx ? "#292524" : "#d6d0c8",
-                    border:  isActive ? "2px solid #F9F7F0" : "none",
-                    outline: isActive ? "2px solid #292524" : "none",
-                    cursor: "pointer", padding: 0, transition: "all 0.3s ease",
-                  }} />
-              );
-            })}
-          </div>
-          <div style={{ position: "relative", height: 16, marginTop: 4 }}>
-            {availableKeys.map((k, i) => {
-              const pct      = availableKeys.length > 1 ? (i / (availableKeys.length - 1)) * 100 : 50;
-              const isActive = periodIdx === i;
-              return (
-                <button key={k}
-                  onClick={() => { setPaused(true); goTo(i); }}
-                  style={{
-                    position: "absolute", left: `${pct}%`,
-                    transform: "translateX(-50%)",
-                    fontSize: isActive ? 11 : 10,
-                    fontWeight: isActive ? 700 : 400,
-                    color: isActive ? "#292524" : "#b5afa8",
-                    whiteSpace: "nowrap", transition: "all 0.25s ease",
-                    cursor: "pointer", background: "none",
-                    border: "none", padding: 0, fontFamily: FONT,
-                  }}>
-                  {k.split("→")[0]}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        {[
+          "滾輪 / 左右拖曳 瀏覽時間軸",
+          "Hover 節點 → 追蹤同類別全時段",
+          "Hover 流向帶 → 查看面積與比例",
+        ].map(t => (
+          <span key={t} style={{ fontSize: 11, color: "#bbb" }}>{t}</span>
+        ))}
       </div>
     </div>
   );
