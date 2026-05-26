@@ -10,7 +10,7 @@ const FONT = '"Noto Serif TC","Noto Serif",serif';
 const BG = "#F9F7F0";
 const ACCENT = "#78716c";
 const R = 46;
-const PANEL_W = 380; // 詳細面板寬度（px）
+const PANEL_W = 380;
 
 /* ── 外部連結圖示 ── */
 function ExtIcon() {
@@ -39,16 +39,17 @@ function RelationLines({
   w,
   h,
   offsetX,
+  offsetY,
 }: {
   active: string | null;
   w: number;
   h: number;
   offsetX: number;
+  offsetY: number;
 }) {
   const pos = (id: string) => {
     const s = STAKEHOLDERS.find((s) => s.id === id);
-    // 節點座標 = 相對位置 × 畫布尺寸 + 水平偏移
-    return s ? { x: s.x * w + offsetX, y: s.y * h } : { x: 0, y: 0 };
+    return s ? { x: s.x * w + offsetX, y: s.y * h + offsetY } : { x: 0, y: 0 };
   };
 
   return (
@@ -145,6 +146,7 @@ function Node({
   w,
   h,
   offsetX,
+  offsetY,
 }: {
   s: Stakeholder;
   isActive: boolean;
@@ -153,15 +155,15 @@ function Node({
   w: number;
   h: number;
   offsetX: number;
+  offsetY: number;
 }) {
   return (
     <div
       onClick={onClick}
       style={{
         position: "absolute",
-        // ★ 節點 X = 相對位置 × 畫布寬 + 水平偏移
         left: s.x * w + offsetX,
-        top: s.y * h,
+        top: s.y * h + offsetY,
         transform: "translate(-50%, -50%)",
         width: R * 2,
         height: R * 2,
@@ -178,7 +180,7 @@ function Node({
           : "0 2px 8px rgba(0,0,0,0.05)",
         opacity: hasActive && !isActive ? 0.4 : 1,
         transition:
-          "left .35s cubic-bezier(.25,.8,.25,1), opacity .3s, box-shadow .3s, border .3s",
+          "left .35s cubic-bezier(.25,.8,.25,1), top .35s cubic-bezier(.25,.8,.25,1), opacity .3s, box-shadow .3s, border .3s",
         zIndex: isActive ? 10 : 2,
         userSelect: "none",
       }}
@@ -428,13 +430,11 @@ export default function StakeholderMap() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
 
-  /* 讀取 URL hash */
   useEffect(() => {
     const hash = window.location.hash.replace("#", "");
     if (hash && STAKEHOLDERS.find((s) => s.id === hash)) setActive(hash);
   }, []);
 
-  /* 更新 URL hash */
   const handleSelect = useCallback(
     (id: string) => {
       const next = active === id ? null : id;
@@ -448,7 +448,6 @@ export default function StakeholderMap() {
     [active],
   );
 
-  /* 監聽 wrap 尺寸 */
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
@@ -460,7 +459,6 @@ export default function StakeholderMap() {
     return () => ro.disconnect();
   }, []);
 
-  /* ESC 關閉 */
   useEffect(() => {
     const fn = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -474,15 +472,10 @@ export default function StakeholderMap() {
 
   const activeNode = STAKEHOLDERS.find((s) => s.id === active) ?? null;
 
-  /*
-   * ★ 核心邏輯：
-   *   - 無選中：圖譜置中於整個 wrap（offsetX = 0）
-   *   - 有選中：圖譜向左移，讓出 PANEL_W 的空間
-   *             圖譜可用寬 = size.w - PANEL_W
-   *             置中偏移 = -(PANEL_W / 2)
-   *             → 節點群體整體左移半個 panel 寬，視覺上仍置中於剩餘空間
-   */
+  // ★ 水平：panel 開啟時整體左移，讓圖譜置中於剩餘空間
   const offsetX = active ? -(PANEL_W / 2) : 0;
+  // ★ 垂直：固定往下偏移，讓圖譜整體下移（調整這個數字即可）
+  const offsetY = size.h * 0.06;
 
   return (
     <div
@@ -497,7 +490,6 @@ export default function StakeholderMap() {
     >
       <style>{`* { box-sizing: border-box; } ::-webkit-scrollbar { display: none; }`}</style>
 
-      {/* Header */}
       <header
         style={{
           flexShrink: 0,
@@ -523,7 +515,6 @@ export default function StakeholderMap() {
         </span>
       </header>
 
-      {/* 主體 */}
       <div
         ref={wrapRef}
         style={{ flex: 1, position: "relative", overflow: "hidden" }}
@@ -535,6 +526,7 @@ export default function StakeholderMap() {
               w={size.w}
               h={size.h}
               offsetX={offsetX}
+              offsetY={offsetY}
             />
             {STAKEHOLDERS.map((s) => (
               <Node
@@ -546,6 +538,7 @@ export default function StakeholderMap() {
                 w={size.w}
                 h={size.h}
                 offsetX={offsetX}
+                offsetY={offsetY}
               />
             ))}
           </>
