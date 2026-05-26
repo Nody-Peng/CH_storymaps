@@ -1,5 +1,5 @@
 "use client";
-import type { TimelineNode } from "@/data/timeline-nodes";
+import type { TimelineNode } from "@/public/data/timeline-nodes";
 import {
   useCallback,
   useEffect,
