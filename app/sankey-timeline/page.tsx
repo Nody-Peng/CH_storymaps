@@ -182,7 +182,7 @@ function SmartTooltip({
   svgX: number;
   svgY: number;
   html: string;
-  scrollRef: React.RefObject<HTMLDivElement>;
+  scrollRef: React.RefObject<HTMLDivElement | null>;
 }) {
   const tipRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{
