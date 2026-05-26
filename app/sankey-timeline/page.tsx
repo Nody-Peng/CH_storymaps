@@ -74,7 +74,7 @@ export default function SankeyPage() {
   const svgRef    = useRef<SVGSVGElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // ── 載入 Google Font ──────────────────────────────
+  // ── Google Font ───────────────────────────────────
   useEffect(() => {
     if (document.getElementById("noto-serif-tc-link")) return;
     const link = document.createElement("link");
@@ -89,6 +89,7 @@ export default function SankeyPage() {
     const el = scrollRef.current;
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
+      // 若是純水平滾動（觸控板左右）直接放行
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
       e.preventDefault();
       el.scrollLeft += e.deltaY * 1.2;
@@ -231,66 +232,93 @@ export default function SankeyPage() {
   }, []);
 
   if (!data) return (
-    <div style={{ background: BG, height: "100vh", display: "flex",
-      alignItems: "center", justifyContent: "center", fontFamily: FONT }}>
+    <div style={{
+      background: BG, width: "100%", padding: "48px 0",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      fontFamily: FONT,
+    }}>
       <p style={{ color: "#a8a29e", fontSize: 16 }}>載入資料中…</p>
     </div>
   );
 
   return (
-    <div style={{ background: BG, height: "100vh", display: "flex",
-      flexDirection: "column", overflow: "hidden", fontFamily: FONT }}>
+    // ── 最外層：寬度 100%，高度自動撐開，不鎖死 vh ──
+    <div style={{
+      background: BG,
+      width: "100%",
+      display: "flex",
+      flexDirection: "column",
+      fontFamily: FONT,
+    }}>
 
       {/* ── Header ── */}
-      <header style={{
-        flexShrink: 0,
-        background: "rgba(249,247,240,0.97)", backdropFilter: "blur(12px)",
+      <div style={{
+        background: BG,
         borderBottom: "1px solid #e7e0d8",
-        display: "flex", alignItems: "center", gap: 20,
-        padding: "0 32px", height: 54,
+        padding: "10px 20px 8px",
       }}>
-        <span style={{ fontSize: 15, fontWeight: 700,
-          color: "#2c2c2c", whiteSpace: "nowrap", letterSpacing: ".04em" }}>
+        {/* 第一行：標題 */}
+        <div style={{
+          fontSize: 15, fontWeight: 700,
+          color: "#2c2c2c", letterSpacing: ".04em",
+          marginBottom: 8,
+        }}>
           彰化沿海地覆類別變遷　1985–2022
-        </span>
-
-        <div style={{ display: "flex", gap: 2 }}>
-          {REGIONS.map(r => (
-            <button key={r} onClick={() => setRegion(r)} style={{
-              padding: "4px 13px", borderRadius: 20, border: "none",
-              fontSize: 12, fontFamily: FONT, cursor: "pointer",
-              background: region === r ? "#292524" : "transparent",
-              color:      region === r ? "#faf7f2" : "#78716c",
-              transition: "all 0.18s",
-            }}>{r}</button>
-          ))}
         </div>
 
-        <div style={{ marginLeft: "auto", display: "flex", gap: 16, alignItems: "center" }}>
-          {CLASS_ORDER.map(cls => (
-            <button key={cls}
-              onMouseEnter={() => setHovered(`${cls}（1985）`)}
-              onMouseLeave={() => setHovered(null)}
-              style={{ display: "flex", alignItems: "center", gap: 6,
-                background: "none", border: "none", cursor: "pointer", padding: 0,
-                opacity: hovered && !hovered.includes(cls) ? 0.3 : 1,
-                transition: "opacity .2s", fontFamily: FONT,
-              }}>
-              <div style={{ width: 11, height: 11, borderRadius: 2,
-                background: getColor(cls), flexShrink: 0 }} />
-              <span style={{ fontSize: 12, color: "#555", whiteSpace: "nowrap" }}>{cls}</span>
-            </button>
-          ))}
-        </div>
-      </header>
+        {/* 第二行：地區切換 + 圖例（自動換行）*/}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+          {/* 地區按鈕 */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
+            {REGIONS.map(r => (
+              <button key={r} onClick={() => setRegion(r)} style={{
+                padding: "3px 11px", borderRadius: 20, border: "none",
+                fontSize: 12, fontFamily: FONT, cursor: "pointer",
+                background: region === r ? "#292524" : "#ede9e3",
+                color:      region === r ? "#faf7f2" : "#78716c",
+                transition: "all 0.18s",
+              }}>{r}</button>
+            ))}
+          </div>
 
-      {/* ── 主圖區 ── */}
+          {/* 分隔 */}
+          <div style={{ width: 1, height: 18, background: "#ddd", margin: "0 4px" }} />
+
+          {/* 圖例（自動換行）*/}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", alignItems: "center" }}>
+            {CLASS_ORDER.map(cls => (
+              <button key={cls}
+                onMouseEnter={() => setHovered(`${cls}（1985）`)}
+                onMouseLeave={() => setHovered(null)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 5,
+                  background: "none", border: "none", cursor: "pointer", padding: 0,
+                  opacity: hovered && !hovered.includes(cls) ? 0.3 : 1,
+                  transition: "opacity .2s", fontFamily: FONT,
+                }}>
+                <div style={{ width: 10, height: 10, borderRadius: 2,
+                  background: getColor(cls), flexShrink: 0 }} />
+                <span style={{ fontSize: 12, color: "#555", whiteSpace: "nowrap" }}>{cls}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── 圖表捲動區：水平捲動，垂直也可捲 ── */}
       <div
         ref={scrollRef}
         style={{
-          flex: 1, overflowX: "auto", overflowY: "hidden",
-          scrollbarWidth: "thin", scrollbarColor: "#ccc #f5f3ee",
-          position: "relative", cursor: "grab",
+          width: "100%",
+          overflowX: "auto",
+          overflowY: "auto",          // ← 垂直捲軸開啟
+          position: "relative",
+          // 讓捲動區高度自適應，最小 400px，最大 90vh
+          maxHeight: "90vh",
+          minHeight: 400,
+          scrollbarWidth: "thin",
+          scrollbarColor: "#ccc #f5f3ee",
+          cursor: "default",
         }}
       >
         <svg
@@ -300,7 +328,6 @@ export default function SankeyPage() {
           style={{ display: "block", background: BG }}
           onMouseLeave={() => { setHovered(null); setTooltip(null); }}
         >
-          {/* 字型宣告（SVG 內部也套用）*/}
           <defs>
             <style>{`text { font-family: 'Noto Serif TC', 'Noto Serif', serif; }`}</style>
           </defs>
@@ -311,11 +338,8 @@ export default function SankeyPage() {
               x={PAD_LEFT + i * COL_W + NODE_W / 2}
               y={PAD_TOP - 30}
               textAnchor="middle"
-              fontFamily={FONT}
-              fontSize={14}
-              fontWeight={700}
-              fill="#aaa"
-              letterSpacing="0.08em"
+              fontFamily={FONT} fontSize={14} fontWeight={700}
+              fill="#aaa" letterSpacing="0.08em"
             >{y}</text>
           ))}
 
@@ -347,17 +371,14 @@ export default function SankeyPage() {
             const isActive = !hovered || relatedNames.has(n.name);
             const isHov    = hovered === n.name;
             const isFirst  = n.year === ALL_YEARS[0];
-
             return (
               <g key={n.name} style={{ cursor: "pointer" }}
                 onMouseEnter={() => setHovered(n.name)}
                 onMouseLeave={() => setHovered(null)}
               >
                 <rect x={n.x} y={n.y} width={NODE_W} height={n.h}
-                  fill={getColor(n.cls)}
-                  opacity={isActive ? 1 : 0.12}
-                  rx={3}
-                  style={{ transition: "opacity 0.2s" }}
+                  fill={getColor(n.cls)} opacity={isActive ? 1 : 0.12}
+                  rx={3} style={{ transition: "opacity 0.2s" }}
                 />
                 {isHov && (
                   <rect x={n.x - 2} y={n.y - 2}
@@ -401,14 +422,15 @@ export default function SankeyPage() {
         )}
       </div>
 
-      {/* ── 底部說明 ── */}
+      {/* ── 底部提示 ── */}
       <div style={{
-        flexShrink: 0, height: 30,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        gap: 36, borderTop: "1px solid #ece8e0",
+        padding: "6px 20px",
+        borderTop: "1px solid #ece8e0",
+        display: "flex", flexWrap: "wrap",
+        gap: "4px 24px", justifyContent: "center",
       }}>
         {[
-          "滾輪 / 左右拖曳 瀏覽時間軸",
+          "滾輪左右捲動瀏覽時間軸",
           "Hover 節點 → 追蹤同類別全時段",
           "Hover 流向帶 → 查看面積與比例",
         ].map(t => (
