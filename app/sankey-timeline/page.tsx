@@ -63,9 +63,9 @@ const YEARS = [
 
 const REGION_MAP: Record<string, string> = {
   全部: "all",
-  鹿港鎮: "lukang",
-  線西鄉: "xianxi",
   伸港鄉: "shengang",
+  線西鄉: "xianxi",
+  鹿港鎮: "lukang",
   福興鄉: "fuxing",
   芳苑鄉: "fangyuan",
   大城鄉: "dacheng",
