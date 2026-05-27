@@ -33,6 +33,43 @@ function ExtIcon() {
   );
 }
 
+/* ── 工具：計算貝茲曲線上的點（t=0~1）── */
+function quadBezierPoint(
+  x1: number,
+  y1: number,
+  mx: number,
+  my: number,
+  x2: number,
+  y2: number,
+  t: number,
+) {
+  const u = 1 - t;
+  return {
+    x: u * u * x1 + 2 * u * t * mx + t * t * x2,
+    y: u * u * y1 + 2 * u * t * my + t * t * y2,
+  };
+}
+
+/* ── 工具：檢查曲線是否過於靠近某個節點中心 ── */
+function curvePassesThroughNode(
+  x1: number,
+  y1: number,
+  mx: number,
+  my: number,
+  x2: number,
+  y2: number,
+  nx: number,
+  ny: number,
+  threshold = R + 8,
+): boolean {
+  for (let t = 0.1; t < 0.9; t += 0.05) {
+    const p = quadBezierPoint(x1, y1, mx, my, x2, y2, t);
+    const d = Math.sqrt((p.x - nx) ** 2 + (p.y - ny) ** 2);
+    if (d < threshold) return true;
+  }
+  return false;
+}
+
 /* ── 關係線 ── */
 function RelationLines({
   active,
@@ -51,6 +88,13 @@ function RelationLines({
     const s = STAKEHOLDERS.find((s) => s.id === id);
     return s ? { x: s.x * w + offsetX, y: s.y * h + offsetY } : { x: 0, y: 0 };
   };
+
+  /* 所有節點的螢幕座標（用於迴避檢測）*/
+  const allPos = STAKEHOLDERS.map((s) => ({
+    id: s.id,
+    x: s.x * w + offsetX,
+    y: s.y * h + offsetY,
+  }));
 
   return (
     <svg
@@ -72,7 +116,7 @@ function RelationLines({
           refY="3"
           orient="auto"
         >
-          <path d="M0,0 L0,6 L6,3 z" fill="#c4bdb4" />
+          <path d="M0,0 L0,6 L6,3 z" fill="#b8b0a6" />
         </marker>
         <marker
           id="arr-hi"
@@ -90,45 +134,78 @@ function RelationLines({
         const f = pos(rel.from);
         const t = pos(rel.to);
         const isHi = active === rel.from || active === rel.to;
+
         const dx = t.x - f.x,
           dy = t.y - f.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
         const ux = dx / dist,
           uy = dy / dist;
+
         const x1 = f.x + ux * (R + 4),
           y1 = f.y + uy * (R + 4);
         const x2 = t.x - ux * (R + 10),
           y2 = t.y - uy * (R + 10);
-        const mx = (x1 + x2) / 2 - uy * 28;
-        const my = (y1 + y2) / 2 + ux * 28;
-        const lx = (x1 + x2) / 2 - uy * 18;
-        const ly = (y1 + y2) / 2 + ux * 18;
+
+        /* ★ 動態迴避：若曲線穿越其他節點，逐步加大彎曲幅度 */
+        let bend = 28;
+        let side = -1; // -1 = 左彎，+1 = 右彎
+        let mx = (x1 + x2) / 2 + side * -uy * bend;
+        let my = (y1 + y2) / 2 + side * ux * bend;
+
+        const blockers = allPos.filter(
+          (p) => p.id !== rel.from && p.id !== rel.to,
+        );
+
+        for (let attempt = 0; attempt < 8; attempt++) {
+          const blocked = blockers.some((p) =>
+            curvePassesThroughNode(x1, y1, mx, my, x2, y2, p.x, p.y),
+          );
+          if (!blocked) break;
+          bend += 30;
+          // 第 4 次嘗試後換邊
+          if (attempt === 3) side = 1;
+          mx = (x1 + x2) / 2 + side * -uy * bend;
+          my = (y1 + y2) / 2 + side * ux * bend;
+        }
+
+        /* 標籤位置（沿曲線中點偏移）*/
+        const lx = (x1 + x2) / 2 + side * -uy * (bend * 0.55);
+        const ly = (y1 + y2) / 2 + side * ux * (bend * 0.55);
 
         return (
           <g key={i}>
             <path
               d={`M ${x1} ${y1} Q ${mx} ${my} ${x2} ${y2}`}
               fill="none"
-              stroke={isHi ? ACCENT : "#ddd8d0"}
-              strokeWidth={isHi ? 1.8 : 1}
-              strokeDasharray={isHi ? "none" : "4 3"}
+              /* ★ 非高亮線條：顏色加深、透明度提高 */
+              stroke={isHi ? ACCENT : "#b8b0a6"}
+              strokeWidth={isHi ? 2 : 1.2}
+              strokeDasharray={isHi ? "none" : "5 3"}
               markerEnd={isHi ? "url(#arr-hi)" : "url(#arr)"}
-              opacity={active && !isHi ? 0.2 : 1}
+              opacity={active && !isHi ? 0.45 : 1}
               style={{ transition: "all .35s" }}
             />
+
             {isHi && (
-              <text
-                x={lx}
-                y={ly}
-                textAnchor="middle"
-                fontSize={12}
-                fill={ACCENT}
-                fontFamily={FONT}
-                fontWeight={600}
-                style={{ pointerEvents: "none", userSelect: "none" }}
-              >
-                {rel.label}
-              </text>
+              <g>
+                {/* ★ 文字白底墊層，防止被線條遮蓋 */}
+                <text
+                  x={lx}
+                  y={ly}
+                  textAnchor="middle"
+                  fontSize={12}
+                  fontFamily={FONT}
+                  fontWeight={600}
+                  stroke="#F9F7F0"
+                  strokeWidth={4}
+                  strokeLinejoin="round"
+                  paintOrder="stroke"
+                  fill={ACCENT}
+                  style={{ pointerEvents: "none", userSelect: "none" }}
+                >
+                  {rel.label}
+                </text>
+              </g>
             )}
           </g>
         );
@@ -178,7 +255,7 @@ function Node({
         boxShadow: isActive
           ? "0 0 0 4px #29252420, 0 8px 24px rgba(0,0,0,0.10)"
           : "0 2px 8px rgba(0,0,0,0.05)",
-        opacity: hasActive && !isActive ? 0.4 : 1,
+        opacity: hasActive && !isActive ? 0.45 : 1,
         transition:
           "left .35s cubic-bezier(.25,.8,.25,1), top .35s cubic-bezier(.25,.8,.25,1), opacity .3s, box-shadow .3s, border .3s",
         zIndex: isActive ? 10 : 2,
@@ -472,9 +549,7 @@ export default function StakeholderMap() {
 
   const activeNode = STAKEHOLDERS.find((s) => s.id === active) ?? null;
 
-  // ★ 水平：panel 開啟時整體左移，讓圖譜置中於剩餘空間
   const offsetX = active ? -(PANEL_W / 2) : 0;
-  // ★ 垂直：固定往下偏移，讓圖譜整體下移（調整這個數字即可）
   const offsetY = size.h * 0.06;
 
   return (

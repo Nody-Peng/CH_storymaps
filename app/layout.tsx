@@ -13,8 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "StoryMap Widgets",
-  description: "Interactive widgets for ArcGIS StoryMaps",
+  title: "《風光》之下｜彰化沿海 40 年的土地變奏曲",
+  description:
+    "以衛星遙測與新聞查證重建彰化沿海土地變遷：從農地流失、工廠蔓延到農地種電，追蹤 1985–2022 的制度與地景轉換。",
 };
 
 export default function RootLayout({
