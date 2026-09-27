@@ -50,6 +50,12 @@ const GROUPS: { heading: string; note: string; items: Entry[] }[] = [
         kind: "影片",
       },
       {
+        href: "/video/balance-intro",
+        title: "開場片：尋找下一個平衡木",
+        desc: "引導式預告，約 56 秒，手繪線稿動畫、中英字幕。不揭曉解方，只帶讀者往下閱讀，再親手試玩平衡木；適合放在「尋找下一個平衡木」章節開頭。",
+        kind: "影片",
+      },
+      {
         href: "/balance",
         title: "尋找下一個平衡木",
         desc: "互動翹翹板：點選四項政策建議，看光電與農地如何從失衡逐步找回平衡，並附上全篇關鍵統計與收尾引言。",
