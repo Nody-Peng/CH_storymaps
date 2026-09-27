@@ -14,6 +14,12 @@ const GROUPS: { heading: string; note: string; items: Entry[] }[] = [
     note: "制度、事件與人",
     items: [
       {
+        href: "/video/land-name",
+        title: "開場片：這片土地的名字",
+        desc: "手繪線稿動畫，約 110 秒，中英字幕。從台灣地圖走到彰化沿海六鄉鎮，帶出泥灘地、蚵田、地層下陷三個事實。",
+        kind: "影片",
+      },
+      {
         href: "/timeline",
         title: "政策與事件時間軸",
         desc: "從 1950 年代地下水超抽、農地釋出與農地工廠合法化，到 2031 年國土計畫法施行，逐張回顧影響沿海土地的關鍵節點。",
@@ -27,7 +33,7 @@ const GROUPS: { heading: string; note: string; items: Entry[] }[] = [
       },
       {
         href: "/video/voices",
-        title: "章節開場片：各界的聲音",
+        title: "開場片：各界的聲音",
         desc: "手繪線稿動畫，約 100 秒，中英字幕。適合放在「困在局裡的人們」章節開頭。",
         kind: "影片",
       },
