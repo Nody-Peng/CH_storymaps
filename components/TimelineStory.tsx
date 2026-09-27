@@ -4,9 +4,8 @@
    直向捲動敘事：左側固定「土地帳本」（本研究衛星數據），右側逐張節點卡片。
    讀到哪一年，帳本上的標記與區間就跟到哪一年。
    ─ 文字：public/data/timeline-nodes.ts（與舊版 /timeline 共用）
-   ─ 插畫、分類、數據區間、延伸頁面：public/data/timeline-v2-extra.ts
+   ─ 插畫、分類、數據區間：public/data/timeline-v2-extra.ts
 ═══════════════════════════════════════════════ */
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { TimelineNode } from "@/public/data/timeline-nodes";
 import { CATEGORY_COLOR, EXTRA } from "@/public/data/timeline-v2-extra";
@@ -200,11 +199,6 @@ function NodeCard({ node, series, index, total, refCb, active }: { node: Timelin
               {node.mediaLabel ?? "閱讀報導"} ↗
             </a>
           )}
-          {ex.related.map((r) => (
-            <Link key={r.href + r.label} href={r.href} style={btn()}>
-              延伸：{r.label} →
-            </Link>
-          ))}
         </div>
         {node.sources.length > 0 && (
           <details style={{ marginTop: 14 }}>
@@ -363,18 +357,7 @@ export default function TimelineStory({ nodes }: { nodes: TimelineNode[] }) {
       <footer style={{ background: INK, color: PAPER, padding: "64px 16px" }}>
         <div style={{ maxWidth: 860, margin: "0 auto", textAlign: "center" }}>
           <h2 style={{ fontSize: 28, fontWeight: 900, margin: "0 0 10px" }}>防線一道道鬆動之後，土地流向了哪裡？</h2>
-          <p style={{ fontSize: 15, opacity: 0.8, margin: "0 0 26px" }}>用衛星數據看每一期的土地流向，或聽聽困在局裡的人們怎麼說。</p>
-          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-            {[
-              { href: "/sankey-timeline", label: "分期土地流向" },
-              { href: "/sankey", label: "1985 → 2022 地覆變遷圖" },
-              { href: "/stakeholders", label: "困在局裡的人們" },
-            ].map((l) => (
-              <Link key={l.href} href={l.href} style={{ ...btn(), color: PAPER, borderColor: "rgba(242,237,224,.5)", marginTop: 0, fontSize: 14, padding: "9px 18px" }}>
-                {l.label} →
-              </Link>
-            ))}
-          </div>
+          <p style={{ fontSize: 15, opacity: 0.8, margin: 0 }}>繼續往下閱讀故事，看見每一期土地的流向，以及困在局裡的人們怎麼說。</p>
         </div>
       </footer>
     </div>
