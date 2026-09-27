@@ -44,6 +44,12 @@ const GROUPS: { heading: string; note: string; items: Entry[] }[] = [
         kind: "影片",
       },
       {
+        href: "/video/hidden-cost",
+        title: "開場片：當田消失之後",
+        desc: "手繪線稿動畫，約 100 秒，中英字幕。糧食安全、生態系統服務、不可逆性三個沒寫進合約的成本，適合放在「當田消失之後」章節開頭。",
+        kind: "影片",
+      },
+      {
         href: "/balance",
         title: "尋找下一個平衡木",
         desc: "互動翹翹板：點選四項政策建議，看光電與農地如何從失衡逐步找回平衡，並附上全篇關鍵統計與收尾引言。",
