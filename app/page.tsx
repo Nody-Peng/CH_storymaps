@@ -16,7 +16,7 @@ const GROUPS: { heading: string; note: string; items: Entry[] }[] = [
       {
         href: "/video/land-name",
         title: "開場片：這片土地的名字",
-        desc: "手繪線稿動畫，約 110 秒，中英字幕。從台灣地圖走到彰化沿海六鄉鎮，帶出泥灘地、蚵田、地層下陷三個事實。",
+        desc: "引導式預告，約 56 秒，手繪線稿動畫、中英字幕。旁白極簡，以稻浪、蚵田、候鳥與衛星的意象帶讀者進入故事。",
         kind: "影片",
       },
       {
