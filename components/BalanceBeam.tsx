@@ -1,6 +1,11 @@
 "use client";
-import { CLOSING_STATS, POLICIES, type Policy } from "@/public/data/balance-policies";
-import { useMemo, useState } from "react";
+import {
+  BUDGET,
+  CLOSING_STATS,
+  POLICIES,
+  type Policy,
+} from "@/public/data/balance-policies";
+import { useMemo, useRef, useState } from "react";
 
 const FONT = '"Noto Serif TC","Noto Serif",serif';
 const BG = "#f2ede0";
@@ -9,8 +14,11 @@ const ORANGE = "#e8935a";
 const GOLD = "#d4a843";
 const PANEL_NAVY = "#1e3a5f";
 const MUTED = "#8a8168";
+const GREEN = "#3a6b4a";
+const RED = "#b8503f";
 
 const MAX_TILT = 14; // 度，全部政策關閉時的傾斜角
+const MAX_WEIGHT = POLICIES.reduce((a, p) => a + p.weight, 0); // 100
 
 /* ── 太陽能板圖示（線稿風） ── */
 function SolarIcon({ size = 46 }: { size?: number }) {
@@ -96,106 +104,143 @@ function RiceIcon({ size = 46 }: { size?: number }) {
   );
 }
 
-/* ── 政策切換卡片 ── */
-function PolicyCard({
+type DragState = {
+  id: string;
+  dx: number;
+  dy: number;
+  moved: boolean;
+} | null;
+
+/* ── 可拖曳的政策籌碼（尚未啟用） ── */
+function PolicyChip({
   p,
-  enabled,
-  onToggle,
+  afford,
+  drag,
+  rejecting,
+  onPointerDown,
 }: {
   p: Policy;
-  enabled: boolean;
-  onToggle: () => void;
+  afford: boolean;
+  drag: DragState;
+  rejecting: boolean;
+  onPointerDown: (e: React.PointerEvent<HTMLDivElement>, id: string) => void;
 }) {
+  const isDragging = drag?.id === p.id;
   return (
-    <button
-      onClick={onToggle}
+    <div
+      onPointerDown={(e) => afford && onPointerDown(e, p.id)}
       style={{
-        all: "unset",
-        cursor: "pointer",
+        position: "relative",
+        cursor: afford ? "grab" : "not-allowed",
+        userSelect: "none",
+        touchAction: "none",
         display: "flex",
         gap: 12,
         alignItems: "flex-start",
         padding: "14px 16px",
         borderRadius: 10,
-        border: `1.5px solid ${enabled ? INK : "#ddd5c2"}`,
-        background: enabled ? "#fff" : "rgba(255,255,255,0.4)",
-        boxShadow: enabled ? "0 4px 14px rgba(26,43,74,0.08)" : "none",
-        transition: "all .25s",
+        border: `1.5px solid ${afford ? INK : "#ddd5c2"}`,
+        background: afford ? "#fff" : "rgba(255,255,255,0.35)",
+        opacity: afford ? 1 : 0.55,
+        boxShadow: isDragging
+          ? "0 14px 28px rgba(26,43,74,0.22)"
+          : "0 2px 6px rgba(26,43,74,0.04)",
+        transform: isDragging
+          ? `translate(${drag.dx}px, ${drag.dy}px) scale(1.03) rotate(${drag.dx * 0.02}deg)`
+          : rejecting
+            ? undefined
+            : "translate(0,0)",
+        animation: rejecting ? "chip-reject .4s ease" : undefined,
+        transition: isDragging ? "none" : "transform .3s cubic-bezier(.34,1.56,.64,1), opacity .2s",
+        zIndex: isDragging ? 50 : 1,
       }}
     >
       <div
         style={{
           flexShrink: 0,
-          width: 22,
-          height: 22,
-          borderRadius: "50%",
-          border: `2px solid ${enabled ? INK : "#c9c0a8"}`,
-          background: enabled ? INK : "transparent",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          marginTop: 2,
-          transition: "all .2s",
+          fontSize: 10,
+          fontWeight: 700,
+          color: ORANGE,
+          width: 16,
         }}
       >
-        {enabled && (
-          <svg width={12} height={12} viewBox="0 0 12 12">
-            <path
-              d="M2 6l2.5 2.5L10 3"
-              fill="none"
-              stroke="#fff"
-              strokeWidth={1.8}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        )}
+        {p.order}
       </div>
-      <div style={{ textAlign: "left" }}>
+      <div style={{ textAlign: "left", flex: 1 }}>
         <div
           style={{
             display: "flex",
             alignItems: "baseline",
             gap: 8,
             marginBottom: 3,
+            flexWrap: "wrap",
           }}
         >
-          <span
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              color: enabled ? ORANGE : MUTED,
-              fontFamily: FONT,
-            }}
-          >
-            {p.order}
-          </span>
-          <span
-            style={{
-              fontSize: 14,
-              fontWeight: 700,
-              color: INK,
-              fontFamily: FONT,
-            }}
-          >
-            {p.title}
-          </span>
-          <span style={{ fontSize: 11, color: MUTED, fontFamily: FONT }}>
-            {p.tagline}
-          </span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: INK }}>{p.title}</span>
+          <span style={{ fontSize: 11, color: MUTED }}>{p.tagline}</span>
         </div>
-        <p
-          style={{
-            fontSize: 12,
-            lineHeight: 1.75,
-            color: "#4a4536",
-            margin: 0,
-            fontFamily: FONT,
-          }}
-        >
+        <p style={{ fontSize: 12, lineHeight: 1.75, color: "#4a4536", margin: "0 0 8px" }}>
           {p.body}
         </p>
+        <div style={{ display: "flex", gap: 10, fontSize: 10.5 }}>
+          <span
+            style={{
+              padding: "2px 8px",
+              borderRadius: 999,
+              background: afford ? "#f2ede0" : "#eee9dc",
+              color: INK,
+              fontWeight: 700,
+            }}
+          >
+            成本 {p.cost}
+          </span>
+          <span
+            style={{
+              padding: "2px 8px",
+              borderRadius: 999,
+              background: "rgba(212,168,67,0.2)",
+              color: "#8a6d1f",
+              fontWeight: 700,
+            }}
+          >
+            修正力 +{p.weight}
+          </span>
+        </div>
+        {!afford && (
+          <p style={{ fontSize: 10.5, color: RED, margin: "6px 0 0" }}>
+            政治能量不足，無法啟用
+          </p>
+        )}
       </div>
+    </div>
+  );
+}
+
+/* ── 已啟用的政策標籤（可點掉復原） ── */
+function ActiveTag({ p, onRemove }: { p: Policy; onRemove: () => void }) {
+  return (
+    <button
+      onClick={onRemove}
+      style={{
+        all: "unset",
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "6px 10px",
+        borderRadius: 999,
+        border: `1.5px solid ${INK}`,
+        background: INK,
+        color: "#fff",
+        fontSize: 12,
+        fontWeight: 700,
+        animation: "chip-pop .35s cubic-bezier(.34,1.56,.64,1)",
+        whiteSpace: "nowrap",
+      }}
+      title="點擊移除，退回政治能量"
+    >
+      {p.title}
+      <span style={{ opacity: 0.7, fontWeight: 400 }}>×</span>
     </button>
   );
 }
@@ -204,29 +249,107 @@ function PolicyCard({
    主元件：尋找下一個平衡木
 ══════════════════════════════════════ */
 export default function BalanceBeam() {
-  const [enabled, setEnabled] = useState<Set<string>>(new Set());
+  const [activeIds, setActiveIds] = useState<Set<string>>(new Set());
+  const [drag, setDrag] = useState<DragState>(null);
+  const [rejectId, setRejectId] = useState<string | null>(null);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
+  const startPos = useRef({ x: 0, y: 0 });
 
-  const toggle = (id: string) =>
-    setEnabled((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+  const usedBudget = useMemo(
+    () => POLICIES.reduce((a, p) => a + (activeIds.has(p.id) ? p.cost : 0), 0),
+    [activeIds],
+  );
+  const remaining = BUDGET - usedBudget;
 
-  const sum = useMemo(
-    () =>
-      POLICIES.reduce((acc, p) => acc + (enabled.has(p.id) ? p.weight : 0), 0),
-    [enabled],
+  const weightSum = useMemo(
+    () => POLICIES.reduce((a, p) => a + (activeIds.has(p.id) ? p.weight : 0), 0),
+    [activeIds],
   );
 
-  const angle = -MAX_TILT + (sum / 100) * MAX_TILT; // -14 → 0
+  const oppositionSum = useMemo(
+    () => POLICIES.reduce((a, p) => a + (activeIds.has(p.id) ? p.opposition : 0), 0),
+    [activeIds],
+  );
+
+  const angle = -MAX_TILT + (weightSum / MAX_WEIGHT) * MAX_TILT;
 
   const status =
-    sum === 0
+    weightSum === 0
       ? "現況：傾斜失衡"
-      : sum === 100
-        ? "四項政策到位：找到平衡"
-        : `逐步修正中・已修正 ${sum}%`;
+      : weightSum >= 80
+        ? "已接近政策能做到的最大平衡"
+        : `逐步修正中・已修正 ${weightSum}%`;
+
+  const oppositionLabel =
+    oppositionSum === 0
+      ? "尚無阻力"
+      : oppositionSum < 35
+        ? "阻力輕微"
+        : oppositionSum < 60
+          ? "阻力升高"
+          : "阻力強烈";
+
+  const oppositionColor =
+    oppositionSum < 35 ? GREEN : oppositionSum < 60 ? ORANGE : RED;
+
+  const inactivePolicies = POLICIES.filter((p) => !activeIds.has(p.id));
+  const activePolicies = POLICIES.filter((p) => activeIds.has(p.id));
+
+  function tryPlace(id: string) {
+    const policy = POLICIES.find((p) => p.id === id)!;
+    if (remaining < policy.cost) {
+      setRejectId(id);
+      window.setTimeout(() => setRejectId(null), 420);
+      return;
+    }
+    setActiveIds((prev) => new Set(prev).add(id));
+  }
+
+  function removeActive(id: string) {
+    setActiveIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  }
+
+  function onChipPointerDown(e: React.PointerEvent<HTMLDivElement>, id: string) {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    startPos.current = { x: e.clientX, y: e.clientY };
+    setDrag({ id, dx: 0, dy: 0, moved: false });
+
+    const el = e.currentTarget;
+
+    const handleMove = (ev: PointerEvent) => {
+      const dx = ev.clientX - startPos.current.x;
+      const dy = ev.clientY - startPos.current.y;
+      setDrag({ id, dx, dy, moved: Math.hypot(dx, dy) > 6 });
+    };
+
+    const handleUp = (ev: PointerEvent) => {
+      el.removeEventListener("pointermove", handleMove);
+      el.removeEventListener("pointerup", handleUp);
+      const zone = dropZoneRef.current?.getBoundingClientRect();
+      const overZone =
+        !!zone &&
+        ev.clientX >= zone.left &&
+        ev.clientX <= zone.right &&
+        ev.clientY >= zone.top &&
+        ev.clientY <= zone.bottom;
+
+      setDrag(null);
+      // 拖進天平區域，或只是輕點一下（沒有明顯拖曳位移），都視為嘗試放置
+      const dx = ev.clientX - startPos.current.x;
+      const dy = ev.clientY - startPos.current.y;
+      const wasTap = Math.hypot(dx, dy) <= 6;
+      if (overZone || wasTap) {
+        tryPlace(id);
+      }
+    };
+
+    el.addEventListener("pointermove", handleMove);
+    el.addEventListener("pointerup", handleUp);
+  }
 
   // 舞台幾何
   const STAGE_W = 420,
@@ -247,7 +370,22 @@ export default function BalanceBeam() {
         fontFamily: FONT,
       }}
     >
-      <style>{`* { box-sizing: border-box; } ::-webkit-scrollbar { display: none; }`}</style>
+      <style>{`
+        * { box-sizing: border-box; }
+        ::-webkit-scrollbar { display: none; }
+        @keyframes chip-reject {
+          0%   { transform: translate(0,0) rotate(0deg); }
+          25%  { transform: translate(-10px,0) rotate(-3deg); }
+          50%  { transform: translate(8px,0) rotate(2deg); }
+          75%  { transform: translate(-5px,0) rotate(-1deg); }
+          100% { transform: translate(0,0) rotate(0deg); }
+        }
+        @keyframes chip-pop {
+          0%   { transform: scale(.6); opacity: 0; }
+          60%  { transform: scale(1.08); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+      `}</style>
 
       <header
         style={{
@@ -262,42 +400,82 @@ export default function BalanceBeam() {
           尋找下一個平衡木
         </div>
         <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>
-          綠能與糧食，不該是零和遊戲——點選下方四項政策，看看平衡木會怎麼變化
+          你的政治能量只有 {BUDGET}，四項政策做不完——把籌碼拖到右邊的天平上，選出你的優先序
         </div>
       </header>
 
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          minHeight: 0,
-        }}
-      >
-        {/* 左側：政策清單 */}
+      <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+        {/* 左側：籌碼與已啟用清單 */}
         <div
           style={{
             width: 400,
             flexShrink: 0,
             overflowY: "auto",
-            padding: "20px 20px 32px",
+            padding: "18px 20px 32px",
             display: "flex",
             flexDirection: "column",
             gap: 10,
             borderRight: "1px solid #ddd5c2",
           }}
         >
-          {POLICIES.map((p) => (
-            <PolicyCard
+          {/* 預算條 */}
+          <div style={{ marginBottom: 4 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontSize: 11,
+                color: MUTED,
+                marginBottom: 4,
+              }}
+            >
+              <span>政治能量</span>
+              <span style={{ fontWeight: 700, color: remaining === 0 ? RED : INK }}>
+                {remaining} / {BUDGET}
+              </span>
+            </div>
+            <div
+              style={{
+                height: 8,
+                borderRadius: 999,
+                background: "#e3dcc9",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  height: "100%",
+                  width: `${(remaining / BUDGET) * 100}%`,
+                  background: remaining === 0 ? RED : INK,
+                  transition: "width .4s cubic-bezier(.34,1.2,.64,1), background .3s",
+                }}
+              />
+            </div>
+          </div>
+
+          {activePolicies.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 4 }}>
+              {activePolicies.map((p) => (
+                <ActiveTag key={p.id} p={p} onRemove={() => removeActive(p.id)} />
+              ))}
+            </div>
+          )}
+
+          {inactivePolicies.map((p) => (
+            <PolicyChip
               key={p.id}
               p={p}
-              enabled={enabled.has(p.id)}
-              onToggle={() => toggle(p.id)}
+              afford={remaining >= p.cost}
+              drag={drag}
+              rejecting={rejectId === p.id}
+              onPointerDown={onChipPointerDown}
             />
           ))}
         </div>
 
-        {/* 右側：平衡木舞台 */}
+        {/* 右側：平衡木舞台（同時是拖曳放置區） */}
         <div
+          ref={dropZoneRef}
           style={{
             flex: 1,
             display: "flex",
@@ -306,15 +484,32 @@ export default function BalanceBeam() {
             justifyContent: "center",
             padding: 24,
             minWidth: 0,
+            position: "relative",
+            outline: drag ? `2px dashed ${ORANGE}` : "2px dashed transparent",
+            outlineOffset: -8,
+            transition: "outline-color .2s",
           }}
         >
+          {drag && (
+            <div
+              style={{
+                position: "absolute",
+                top: 12,
+                fontSize: 11,
+                color: ORANGE,
+                fontWeight: 700,
+              }}
+            >
+              放開，把它放上天平
+            </div>
+          )}
+
           <svg
             width={STAGE_W}
             height={STAGE_H}
             viewBox={`0 0 ${STAGE_W} ${STAGE_H}`}
             style={{ maxWidth: "100%", height: "auto" }}
           >
-            {/* 地面 */}
             <line
               x1={0}
               y1={FULCRUM_Y + 40}
@@ -323,7 +518,6 @@ export default function BalanceBeam() {
               stroke="#ddd5c2"
               strokeWidth={2}
             />
-            {/* 支點三角形 */}
             <path
               d={`M ${FULCRUM_X - 22} ${FULCRUM_Y + 40} L ${FULCRUM_X} ${FULCRUM_Y - 4} L ${
                 FULCRUM_X + 22
@@ -334,12 +528,11 @@ export default function BalanceBeam() {
               strokeLinejoin="round"
             />
 
-            {/* 會旋轉的樑 + 重物群組 */}
             <g
               style={{
                 transform: `rotate(${angle}deg)`,
                 transformOrigin: `${FULCRUM_X}px ${FULCRUM_Y}px`,
-                transition: "transform .6s cubic-bezier(.34,1.4,.4,1)",
+                transition: "transform .7s cubic-bezier(.32,1.7,.34,1)",
               }}
             >
               <line
@@ -357,48 +550,78 @@ export default function BalanceBeam() {
               <g transform={`translate(${FULCRUM_X + BEAM_HALF - 40}, ${BEAM_Y - 46})`}>
                 <RiceIcon />
               </g>
+              {activePolicies.map((_, i) => (
+                <circle
+                  key={i}
+                  cx={FULCRUM_X + BEAM_HALF - 20 - i * 12}
+                  cy={BEAM_Y - 54}
+                  r={4}
+                  fill={GOLD}
+                  stroke={INK}
+                  strokeWidth={1}
+                />
+              ))}
             </g>
           </svg>
 
           <div
             style={{
-              marginTop: 8,
+              marginTop: 4,
               fontSize: 14,
               fontWeight: 700,
-              color: sum === 100 ? "#3a6b4a" : INK,
+              color: weightSum >= 80 ? GREEN : INK,
               transition: "color .3s",
             }}
           >
             {status}
           </div>
 
-          <div
-            style={{
-              marginTop: 4,
-              fontSize: 11,
-              color: MUTED,
-              display: "flex",
-              gap: 16,
-            }}
-          >
+          <div style={{ marginTop: 2, fontSize: 11, color: MUTED, display: "flex", gap: 16 }}>
             <span>← 光電擴張</span>
             <span>農地與糧食安全 →</span>
           </div>
 
+          {/* 社會阻力量表 */}
+          <div style={{ marginTop: 14, width: 280 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontSize: 11,
+                color: MUTED,
+                marginBottom: 4,
+              }}
+            >
+              <span>社會阻力</span>
+              <span style={{ fontWeight: 700, color: oppositionColor }}>
+                {oppositionLabel}
+              </span>
+            </div>
+            <div style={{ height: 6, borderRadius: 999, background: "#e3dcc9", overflow: "hidden" }}>
+              <div
+                style={{
+                  height: "100%",
+                  width: `${Math.min(oppositionSum, 100)}%`,
+                  background: oppositionColor,
+                  transition: "width .5s cubic-bezier(.34,1.2,.64,1), background .3s",
+                }}
+              />
+            </div>
+            {activePolicies.length > 0 && (
+              <div style={{ marginTop: 6, fontSize: 10.5, color: "#6b6450", lineHeight: 1.7 }}>
+                {activePolicies.map((p) => p.reaction).join("；")}
+              </div>
+            )}
+          </div>
+
           {/* 收尾統計 + 引言 */}
-          <div
-            style={{
-              marginTop: 20,
-              maxWidth: 460,
-              width: "100%",
-            }}
-          >
+          <div style={{ marginTop: 16, maxWidth: 460, width: "100%" }}>
             <div
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(5, 1fr)",
                 gap: 6,
-                marginBottom: 14,
+                marginBottom: 12,
               }}
             >
               {CLOSING_STATS.map((s) => (
@@ -413,22 +636,12 @@ export default function BalanceBeam() {
                     textAlign: "center",
                   }}
                 >
-                  <div style={{ fontSize: 13, fontWeight: 800, color: INK }}>
-                    {s.value}
-                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: INK }}>{s.value}</div>
                   <div style={{ fontSize: 9, color: MUTED }}>{s.label}</div>
                 </div>
               ))}
             </div>
-            <p
-              style={{
-                fontSize: 12,
-                lineHeight: 1.9,
-                color: "#4a4536",
-                margin: 0,
-                textAlign: "center",
-              }}
-            >
+            <p style={{ fontSize: 12, lineHeight: 1.9, color: "#4a4536", margin: 0, textAlign: "center" }}>
               下一個 40 年，衛星將繼續記錄。我們希望它記錄的，是一個不同的故事——
               這取決於我們現在的選擇。
             </p>
