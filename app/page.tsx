@@ -43,6 +43,12 @@ const GROUPS: { heading: string; note: string; items: Entry[] }[] = [
         desc: "手繪線稿動畫，約 100 秒，中英字幕。適合放在「困在局裡的人們」章節開頭。",
         kind: "影片",
       },
+      {
+        href: "/balance",
+        title: "尋找下一個平衡木",
+        desc: "互動翹翹板：點選四項政策建議，看光電與農地如何從失衡逐步找回平衡，並附上全篇關鍵統計與收尾引言。",
+        kind: "互動工具",
+      },
     ],
   },
   {
