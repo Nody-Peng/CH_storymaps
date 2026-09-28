@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "尋找下一個平衡木｜彰化沿海土地變奏曲",
-  description: "章節開場：引導式短片，邀請讀者往下閱讀並親手試玩平衡木（手繪線稿動畫，中英字幕）",
+  description: "章節開場：引導式短片，把答案留給接下來的文字（手繪線稿動畫，中英字幕）",
 };
 
 export default function Page() {
